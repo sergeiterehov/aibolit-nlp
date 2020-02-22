@@ -1,0 +1,11 @@
+1. Question X -> 2
+    a. Yes
+    b. No
+
+2. Question Y
+    a. Yes | Sure
+    b. No
+
+- Result X: 1.a, 2.b | 2.a
+
+- Result Y: 1.b
