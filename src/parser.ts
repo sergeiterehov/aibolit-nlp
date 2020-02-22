@@ -1,5 +1,5 @@
 import fs from "fs";
-import { argv } from "yargs";
+import { argv } from "./argv";
 import { IQuestion, ICase, IResult } from "./types";
 
 const inputFile = typeof argv.in === "string" ? argv.in : 0;

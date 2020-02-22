@@ -1,6 +1,6 @@
 import fs from "fs";
 import util from "util";
-import { argv } from "yargs";
+import { argv } from "./argv";
 import { Context } from "./context";
 import { IQuestion, ICase, IResult } from "./types";
 

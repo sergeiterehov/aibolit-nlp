@@ -1,5 +1,16 @@
 import { IQuestion, IResult, ICase } from "./types";
 
+const unknownMessages = [
+    "Я не понимаю",
+    "Объясни проще",
+    "Не понятно...",
+    "Прости, но я так не понимаю.",
+    "Не понял",
+    "Эм.. Что?",
+    "как то это трудновато. говори понятней :-)",
+    "Я умен, но не настолько. :D Что ты имеешь в виду?",
+];
+
 function text1(text: string) {
     return text
         .trim()
@@ -40,37 +51,39 @@ export class Context {
             }
 
             this.state.question = initQuestion;
-        } else {
-            // Active dialog
-            const { question, cases } = this.state;
-
-            if (!question) {
-                // Some problems
-                this.state.done = true;
-
-                return;
-            }
-
-            const currentQuestionCase = cases.find((item) => item.question === question.name);
-
-            if (!currentQuestionCase) {
-                // Current question has not answer, now answer is processing
-                const currentCases = this.cases.filter((item) => item.question === question.name);
-                const activeCase = this.predictCase(question, currentCases, input);
-
-                if (!activeCase) {
-                    // Unknown anser
-                    return "I don't understand. :-("; // or return;
-                }
-
-                this.state.cases.push(activeCase);
-
-                // Go to the next question
-
-                this.state.question = this.questions.find((item) => item.name === (activeCase.next || question.next));
-            }
         }
 
+        // Active dialog
+        const { question, cases } = this.state;
+
+        if (!question) {
+            // Some problems
+            this.state.done = true;
+
+            return;
+        }
+
+        const currentQuestionCase = cases.find((item) => item.question === question.name);
+
+        if (!currentQuestionCase) {
+            // Current question has not answer, now answer is processing
+            const currentCases = this.cases.filter((item) => item.question === question.name);
+            const activeCase = this.predictCase(question, currentCases, input);
+
+            if (!activeCase) {
+                // Unknown anser
+                return unknownMessages[Math.round(Math.random() * (unknownMessages.length - 1))];
+                // or return;
+            }
+
+            this.state.cases.push(activeCase);
+
+            // Go to the next question
+
+            this.state.question = this.questions.find((item) => item.name === (activeCase.next || question.next));
+        }
+
+        // Ask the next question
         const nextQuestion = this.state.question;
 
         if (!nextQuestion) {
@@ -102,6 +115,8 @@ export class Context {
             return;
         }
 
-        return results.map((item) => item.text).join("\n");
+        return results.map((item) => item.text)
+            .filter((value, index, self) => self.indexOf(value) === index)
+            .join("\n");
     }
 }

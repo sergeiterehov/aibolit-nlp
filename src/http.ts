@@ -1,11 +1,11 @@
 import util from "util";
-import { argv } from "yargs";
+import { argv } from "./argv";
 import express from "express";
 import bodyParser from "body-parser";
 import { createContext } from "./provider";
 import { IState } from "./context";
 
-const port = typeof argv.port === "number" ? argv.port : 3000;
+const port = typeof argv.port === "number" ? argv.port : 3501;
 
 const context = createContext();
 
@@ -82,8 +82,12 @@ app.post("/process", withErrorHandler(async (req, res) => {
         console.log("[STATE]", util.inspect(context.state, false, 100, true));
     }
 
+    if (!systemOutput) {
+        throw new Error("EMPTY_RESPONSE");
+    }
+
     res.send({
-        output: systemOutput || "Unknown..."
+        output: systemOutput
     })
 }));
 

@@ -4,23 +4,27 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npm run build && npm run start",
-    "build": "ncc build src/index.ts -m -o dist",
-    "start": "node dist/index.js"
+    "test": "npm run build:script && npm run cli",
+    "build": "npm run build:utils && npm run build:http && npm run build:script",
+    "build:utils": "npm run build:util:parser && npm run build:util:cli",
+    "build:http": "ncc build src/http.ts -m -o dist/http",
+    "build:util:parser": "ncc build src/parser.ts -m -o dist/parser",
+    "build:util:cli": "ncc build src/cli.ts -m -o dist/cli",
+    "build:script": "node dist/parser/index.js --in=config.txt --out=config.json",
+    "cli": "node dist/cli/index.js",
+    "start": "node dist/http/index.js --port=3501"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@types/express": "^4.17.2",
     "@types/node": "^13.7.4",
-    "@types/yargs": "^15.0.3",
     "@zeit/ncc": "^0.21.1",
+    "args-parser": "^1.1.0",
     "body-parser": "^1.19.0",
     "express": "^4.17.1",
     "ncc": "^0.3.6",
     "typescript": "^3.8.2"
   },
-  "dependencies": {
-    "yargs": "^15.1.0"
-  }
+  "dependencies": {}
 }
