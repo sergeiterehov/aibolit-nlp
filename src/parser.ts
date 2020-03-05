@@ -57,6 +57,7 @@ const parseQuestion = parser<IQuestion>(() => {
         name: props.name,
         text: props.text,
         next: props.next,
+        unknown: [],
     }
 });
 
@@ -84,6 +85,22 @@ const parseCase = parser<ICase, { question: string }>(({ question }) => {
     }
 });
 
+const parseUnknown = parser<string>(() => {
+    const testLine = /^\s+--\s+(?<text>.+)/gm;
+    
+    const line = content[cur++];
+
+    const res = testLine.exec(line);
+
+    if (!res || !res.groups) {
+        return;
+    }
+
+    const props = res.groups;
+
+    return props.text;
+});
+
 const parseQuestionBlock = parser<{
     question: IQuestion;
     cases: ICase[];
@@ -99,11 +116,21 @@ const parseQuestionBlock = parser<{
     while (true) {
         const answer = parseCase({ question: question.name });
 
-        if (!answer) {
-            break;
+        if (answer) {
+            cases.push(answer);
+
+            continue;
         }
 
-        cases.push(answer);
+        const unknown = parseUnknown();
+
+        if (unknown) {
+            question.unknown.push(unknown);
+
+            continue;
+        }
+
+        break;
     }
 
     return {

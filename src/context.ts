@@ -72,8 +72,9 @@ export class Context {
 
             if (!activeCase) {
                 // Unknown anser
-                return unknownMessages[Math.round(Math.random() * (unknownMessages.length - 1))];
-                // or return;
+                const unknownList = question.unknown.length ? question.unknown : unknownMessages;
+
+                return unknownList[Math.round(Math.random() * (unknownList.length - 1))];
             }
 
             this.state.cases.push(activeCase);
