@@ -90,7 +90,14 @@ export class Context {
     }
 
     predictCase(question: IQuestion, cases: ICase[], input: string): ICase | void {
-        return cases.find((item) => predictText(item.positive, input));
+        const fullList = cases.flatMap((item) => item.positive);
+        const result = predictText(fullList, input);
+
+        if (!result) {
+            return;
+        }
+
+        return cases.find((item) => item.positive.includes(result));
     }
 
     compileResults(): string | void {
