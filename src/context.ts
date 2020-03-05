@@ -1,4 +1,5 @@
 import { IQuestion, IResult, ICase } from "./types";
+import { predictText } from "./mind";
 
 const unknownMessages = [
     "Я не понимаю",
@@ -10,17 +11,6 @@ const unknownMessages = [
     "как то это трудновато. говори понятней :-)",
     "Я умен, но не настолько. :D Что ты имеешь в виду?",
 ];
-
-function text1(text: string) {
-    return text
-        .trim()
-        .toLowerCase()
-        .replace(/^[\w\d]/, "");
-}
-
-function text2(a: string, b: string) {
-    return text1(a) === text1(b);
-}
 
 export interface IState {
     done?: boolean;
@@ -100,7 +90,7 @@ export class Context {
     }
 
     predictCase(question: IQuestion, cases: ICase[], input: string): ICase | void {
-        return cases.find((item) => item.positive.find((text) => text2(text, input)))
+        return cases.find((item) => predictText(item.positive, input));
     }
 
     compileResults(): string | void {
