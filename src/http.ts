@@ -60,8 +60,9 @@ app.post("/process", withErrorHandler(async (req, res) => {
         userContexts.set(key, {
             cases: [],
         });
-        userContextTimeoutMap.set(key, Number(new Date()) + 1000 * 3600 * 24 * 1);
     }
+
+    userContextTimeoutMap.set(key, Number(new Date()) + 1000 * 3600 * 24 * 1);
 
     const userContext = userContexts.get(key);
 
