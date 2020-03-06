@@ -58,20 +58,27 @@ export class Context {
         if (!currentQuestionCase) {
             // Current question has not answer, now answer is processing
             const currentCases = this.cases.filter((item) => item.question === question.name);
-            const activeCase = this.predictCase(question, currentCases, input);
 
-            if (!activeCase) {
-                // Unknown anser
-                const unknownList = question.unknown.length ? question.unknown : unknownMessages;
+            if (!currentCases.length) {
+                // Just redirect
 
-                return unknownList[Math.round(Math.random() * (unknownList.length - 1))];
+                this.state.question = this.questions.find((item) => item.name === question.next);
+            } else {
+                const activeCase = this.predictCase(question, currentCases, input);
+
+                if (!activeCase) {
+                    // Unknown anser
+                    const unknownList = question.unknown.length ? question.unknown : unknownMessages;
+
+                    return unknownList[Math.round(Math.random() * (unknownList.length - 1))];
+                }
+
+                this.state.cases.push(activeCase);
+
+                // Go to the next question
+
+                this.state.question = this.questions.find((item) => item.name === (activeCase.next || question.next));
             }
-
-            this.state.cases.push(activeCase);
-
-            // Go to the next question
-
-            this.state.question = this.questions.find((item) => item.name === (activeCase.next || question.next));
         }
 
         // Ask the next question

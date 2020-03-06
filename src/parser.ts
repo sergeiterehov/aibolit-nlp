@@ -11,6 +11,7 @@ const outputFile = typeof argv.out === "string"
         : 1;
 
 const content = fs.readFileSync(inputFile, "utf-8")
+    .replace(/\r\n/gm, "\n")
     .replace(/\s*\\\\s*\n/gm, "<br>")
     .split("\n")
     .map((line) => line.replace(/<br>/gm, "\n"));
@@ -144,7 +145,7 @@ const parseQuestionBlock = parser<{
 });
 
 const parseResultBlock = parser<IResult>(() => {
-    const testResult = /^-\s+(?<text>.+):\s+(?<groups>.+)/gms;
+    const testResult = /^-\s+(?<text>.+):\s+(?<expression>.+)/gms;
 
     const line = content[cur++];
 
@@ -158,7 +159,7 @@ const parseResultBlock = parser<IResult>(() => {
 
     return {
         text: props.text,
-        expression: parseBoolean(props.groups),
+        expression: parseBoolean(props.expression),
     };
 });
 

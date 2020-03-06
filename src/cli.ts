@@ -32,6 +32,6 @@ context.state = {
             console.log("[STATE]", util.inspect(context.state, false, 100, true));
         }
 
-        console.log(systemOutput || "Unknown...");
+        console.log(systemOutput || "{EMPTY_RESPONSE}");
     }
 })().finally(() => process.exit());
