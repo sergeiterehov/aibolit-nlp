@@ -43,11 +43,13 @@ function text1(text: string) {
 }
 
 const text2 = (a: string) => {
+    const list = [
+        a,
+        ...(synonyms.list[a] || []),
+    ];
+
     return (b: string) => {
-        return [
-            b,
-            ...(synonyms.list[b] || []),
-        ].some((bItem) => cmp(a, bItem));
+        return list.some((aItem) => cmp(aItem, b));
     };
 }
 
