@@ -77,6 +77,7 @@ app.post("/process", withErrorHandler(async (req, res) => {
 
     if (context.state.done) {
         userContexts.delete(key);
+        userContextTimeoutMap.delete(key);
     }
 
     if (process.env.DEBUG) {
