@@ -102,11 +102,7 @@ export class Context {
 
     compileResults(): string | void {
         const results = this.results.filter((result) => (
-            result.cases.reduce((acc: boolean, fullName) => (
-                acc && Boolean(this.state.cases.find((item) => (
-                    `${item.question}.${item.name}` === fullName
-                )))
-            ), true)
+            testExpression(result.expression, this.state.cases)
         ));
 
         if (!results.length) {
@@ -116,5 +112,34 @@ export class Context {
         return results.map((item) => item.text)
             .filter((value, index, self) => self.indexOf(value) === index)
             .join("\n");
+    }
+}
+
+function testExpression(expression: any, cases: ICase[]) {
+    const {t} = expression;
+
+    switch (t) {
+        case "var": {
+            const {name} = expression;
+
+            return Boolean(cases.find((item) => (
+                `${item.question}.${item.name}` === name
+            )));
+        }
+        case "not": {
+            const {a} = expression;
+
+            return !testExpression(a, cases);
+        }
+        case "and": {
+            const {a,b} = expression;
+
+            return testExpression(a, cases) && testExpression(b, cases);
+        }
+        case "or": {
+            const {a,b} = expression;
+
+            return testExpression(a, cases) || testExpression(b, cases);
+        }
     }
 }

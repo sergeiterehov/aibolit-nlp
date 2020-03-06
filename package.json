@@ -11,8 +11,8 @@
     "build:util:parser": "ncc build src/parser.ts -m -o dist/parser",
     "build:util:cli": "ncc build src/cli.ts -m -o dist/cli",
     "build:script": "node dist/parser/index.js --in=config.txt --out=config.json",
-    "cli": "node dist/cli/index.js",
-    "start": "node dist/http/index.js --port=3501"
+    "cli": "node dist/cli/index.js --synonyms",
+    "start": "node dist/http/index.js --synonyms --port=3501"
   },
   "author": "",
   "license": "ISC",

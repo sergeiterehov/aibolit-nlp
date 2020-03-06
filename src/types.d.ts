@@ -13,6 +13,6 @@ export interface ICase {
 }
 
 export interface IResult {
-    cases: string[];
+    expression: object;
     text: string;
 }

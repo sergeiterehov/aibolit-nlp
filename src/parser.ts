@@ -1,6 +1,7 @@
 import fs from "fs";
 import { argv } from "./argv";
 import { IQuestion, ICase, IResult } from "./types";
+import { parseBoolean } from "./parseBoolean";
 
 const inputFile = typeof argv.in === "string" ? argv.in : 0;
 const outputFile = typeof argv.out === "string"
@@ -9,7 +10,10 @@ const outputFile = typeof argv.out === "string"
         ? `${inputFile}.out.json`
         : 1;
 
-const content = fs.readFileSync(inputFile, "utf-8").split("\n");
+const content = fs.readFileSync(inputFile, "utf-8")
+    .replace(/\s*\\\\s*\n/gm, "<br>")
+    .split("\n")
+    .map((line) => line.replace(/<br>/gm, "\n"));
 
 let cur = 0;
 
@@ -40,8 +44,8 @@ function parser<T, C = undefined>(parser: (context?: C) => T | void): (context?:
 }
 
 const parseQuestion = parser<IQuestion>(() => {
-    const testWithLink = /^(?<name>\d+)\.\s*(?<text>.+)\s+->\s*(?<next>\d+)/gm;
-    const testNoLink = /^(?<name>\d+)\.\s*(?<text>.+)/gm;
+    const testWithLink = /^(?<name>\d+)\.\s*(?<text>.+)\s+->\s*(?<next>\d+)/gms;
+    const testNoLink = /^(?<name>\d+)\.\s*(?<text>.+)/gms;
 
     const line = content[cur++];
 
@@ -62,8 +66,8 @@ const parseQuestion = parser<IQuestion>(() => {
 });
 
 const parseCase = parser<ICase, { question: string }>(({ question }) => {
-    const testWithLink = /^\s+(?<name>\w+)\.\s*(?<text>.+)\s+->\s*(?<next>\d+)/gm;
-    const testNoLink = /^\s+(?<name>\w+)\.\s*(?<text>.+)/gm;
+    const testWithLink = /^\s+(?<name>\w+)\.\s*(?<text>.+)\s+->\s*(?<next>\d+)/gms;
+    const testNoLink = /^\s+(?<name>\w+)\.\s*(?<text>.+)/gms;
 
     const line = content[cur++];
 
@@ -86,7 +90,7 @@ const parseCase = parser<ICase, { question: string }>(({ question }) => {
 });
 
 const parseUnknown = parser<string>(() => {
-    const testLine = /^\s+--\s+(?<text>.+)/gm;
+    const testLine = /^\s+--\s+(?<text>.+)/gms;
     
     const line = content[cur++];
 
@@ -139,13 +143,12 @@ const parseQuestionBlock = parser<{
     }
 });
 
-const parseResultBlock = parser<IResult[]>(() => {
-    const testResult = /^-\s+(?<text>.+):\s+(?<groups>.+)/gm;
+const parseResultBlock = parser<IResult>(() => {
+    const testResult = /^-\s+(?<text>.+):\s+(?<groups>.+)/gms;
 
     const line = content[cur++];
 
     const result = testResult.exec(line);
-
 
     if (!result || !result.groups) {
         return;
@@ -153,14 +156,10 @@ const parseResultBlock = parser<IResult[]>(() => {
 
     const props = result.groups;
 
-    return props.groups.split("|")
-        .map((item) => item.trim())
-        .map((group): IResult => {
-            return {
-                text: props.text,
-                cases: group.split(",").map((item) => item.trim()),
-            };
-        });
+    return {
+        text: props.text,
+        expression: parseBoolean(props.groups),
+    };
 });
 
 const parseFile = parser<{
@@ -185,7 +184,7 @@ const parseFile = parser<{
         const resultBlock = parseResultBlock();
 
         if (resultBlock) {
-            results.push(...resultBlock);
+            results.push(resultBlock);
 
             continue;
         }
