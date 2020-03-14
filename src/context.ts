@@ -68,17 +68,13 @@ export class Context {
             return;
         }
 
-        if (!this.state.cases.length) {
-            return;
-        }
-
         const child = new Context();
 
         child.questions = this.questions;
         child.results = this.results;
         child.cases = this.cases;
 
-        const childResponse = child.process(input);
+        const childResponse = this.state.cases.length ? child.process(input) : undefined;
 
         if (child.state.isKill) {
             this.state.isKill = true;
