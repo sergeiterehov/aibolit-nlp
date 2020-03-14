@@ -12,8 +12,29 @@ const unknownMessages = [
     "Я умен, но не настолько. :D Что ты имеешь в виду?",
 ];
 
+const breakMessages = [
+    "Ладно",
+    "Вернемся к предыдущей теме...",
+    "Ок",
+];
+
+const killMessages = [
+    "Пока",
+    "Обращайся!",
+    "Увидимся, когда увидимся...",
+    "Не кашляй"
+];
+
+function arrayRandom<T>(array: T[]) {
+    return array[Math.round(Math.random() * (array.length - 1))];
+}
+
 export interface IState {
     done?: boolean;
+
+    isBreak?: boolean;
+    isKill?: boolean;
+
     question?: IQuestion;
     cases: ICase[];
 }
@@ -26,7 +47,72 @@ export class Context {
         cases: [],
     };
 
+    child?: Context;
+
     process(input: string): string | void {
+        if (this.child) {
+            if (this.child.state.done) {
+                this.child = undefined;
+            } else {
+                return this.child.process(input);
+            }
+        }
+
+        const myResponse = this.fiber(input);
+
+        if (myResponse) {
+            return myResponse;
+        }
+
+        if (this.state.done) {
+            return;
+        }
+
+        if (!this.state.cases.length) {
+            return;
+        }
+
+        const child = new Context();
+
+        child.questions = this.questions;
+        child.results = this.results;
+        child.cases = this.cases;
+
+        const childResponse = child.process(input);
+
+        if (child.state.isKill) {
+            this.state.isKill = true;
+            this.state.done = true;
+
+            return arrayRandom(killMessages);
+        }
+
+        if (child.state.isBreak) {
+            this.state.done = true;
+
+            return arrayRandom(breakMessages);
+        }
+
+        const hasSameRootWay = child.state.cases.find((item) => item.question === "0") === this.state.cases.find((item) => item.question === "0");
+
+        if (!childResponse || hasSameRootWay) {
+            const { question } = this.state;
+
+            if (!question) {
+                return;
+            }
+
+            const unknownList = question.unknown.length ? question.unknown : unknownMessages;
+
+            return arrayRandom(unknownList);
+        }
+
+        this.child = child;
+
+        return childResponse;
+    }
+
+    protected fiber(input: string): string | void {
         if (this.state.done) {
             // Dialog has been complete
             return;
@@ -59,21 +145,30 @@ export class Context {
             // Current question has not answer, now answer is processing
             const currentCases = this.cases.filter((item) => item.question === question.name);
 
-            if (!currentCases.length) {
-                // Just redirect
-
-                this.state.question = this.questions.find((item) => item.name === question.next);
-            } else {
+            if (currentCases.length) {
                 const activeCase = this.predictCase(question, currentCases, input);
 
                 if (!activeCase) {
                     // Unknown anser
-                    const unknownList = question.unknown.length ? question.unknown : unknownMessages;
-
-                    return unknownList[Math.round(Math.random() * (unknownList.length - 1))];
+                    return;
                 }
 
                 this.state.cases.push(activeCase);
+
+                switch (activeCase.action) {
+                    case "break": {
+                        this.state.isBreak = true;
+                        this.state.done = true;
+
+                        return;
+                    }
+                    case "kill": {
+                        this.state.isKill = true;
+                        this.state.done = true;
+
+                        return;
+                    }
+                }
 
                 // Go to the next question
 
@@ -81,22 +176,46 @@ export class Context {
             }
         }
 
-        // Ask the next question
-        const nextQuestion = this.state.question;
+        const response: string[] = [];
 
-        if (!nextQuestion) {
+        while (
+            this.state.question
+            && !this.cases.some(
+                (item) => this.state.question && item.question === this.state.question.name
+            )
+        ) {
+            // Ask the next question
+            response.push(this.state.question.text);
+            
+            // Just redirect
+            this.state.question = this.questions.find((item) => item.name === question.next);
+        }
+
+        if (!response.length && this.state.question) {
+            response.push(this.state.question.text);
+        }
+
+        if (!this.state.question) {
             // It is final, send results
             this.state.done = true;
 
-            return this.compileResults();
+            const resultsString = this.compileResults();
+
+            if (resultsString) {
+                response.push(resultsString);
+            }
+        }
+
+        if (!response.length) {
+            return;
         }
 
         // sending next question
 
-        return nextQuestion.text;
+        return response.join("\n");
     }
 
-    predictCase(question: IQuestion, cases: ICase[], input: string): ICase | void {
+    protected predictCase(question: IQuestion, cases: ICase[], input: string): ICase | void {
         const fullList = cases.flatMap((item) => item.positive);
         const result = predictText(fullList, input);
 
@@ -107,7 +226,7 @@ export class Context {
         return cases.find((item) => item.positive.includes(result));
     }
 
-    compileResults(): string | void {
+    protected compileResults(): string | void {
         const results = this.results.filter((result) => (
             testExpression(result.expression, this.state.cases)
         ));
@@ -116,7 +235,7 @@ export class Context {
             return;
         }
 
-        return results.map((item) => item.text)
+        return results.map((item) => arrayRandom(item.texts))
             .filter((value, index, self) => self.indexOf(value) === index)
             .join("\n");
     }

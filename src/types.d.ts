@@ -10,9 +10,10 @@ export interface ICase {
     question: string;
     next?: string;
     positive: string[];
+    action?: string;
 }
 
 export interface IResult {
     expression: object;
-    text: string;
+    texts: string[];
 }

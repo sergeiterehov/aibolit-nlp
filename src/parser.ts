@@ -68,11 +68,12 @@ const parseQuestion = parser<IQuestion>(() => {
 
 const parseCase = parser<ICase, { question: string }>(({ question }) => {
     const testWithLink = /^\s+(?<name>\w+)\.\s*(?<text>.+)\s+->\s*(?<next>\d+)/gms;
+    const testWithAction = /^\s+(?<name>\w+)\.\s*(?<text>.+)\s+::\s*(?<action>.+)/gms;
     const testNoLink = /^\s+(?<name>\w+)\.\s*(?<text>.+)/gms;
 
     const line = content[cur++];
 
-    const withLink = testWithLink.exec(line) || testNoLink.exec(line);
+    const withLink = testWithLink.exec(line) || testWithAction.exec(line) || testNoLink.exec(line);
 
     if (!withLink || !withLink.groups) {
         return;
@@ -87,6 +88,7 @@ const parseCase = parser<ICase, { question: string }>(({ question }) => {
         name: props.name,
         positive,
         next: props.next,
+        action: props.action,
     }
 });
 
@@ -158,7 +160,7 @@ const parseResultBlock = parser<IResult>(() => {
     const props = result.groups;
 
     return {
-        text: props.text,
+        texts: props.text.split("|").map((item) => item.trim()),
         expression: parseBoolean(props.expression),
     };
 });
