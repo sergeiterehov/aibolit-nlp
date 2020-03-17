@@ -25,6 +25,13 @@ const killMessages = [
     "Не кашляй"
 ];
 
+const sameWayMessages = [
+    "Мы об этом и говорим\n\n$lastQuestion",
+    "да. продолжим",
+    "Я помню. об этом и речь",
+    "Да-да!\n$lastQuestion"
+];
+
 function arrayRandom<T>(array: T[]) {
     return array[Math.round(Math.random() * (array.length - 1))];
 }
@@ -50,6 +57,28 @@ export class Context {
     child?: Context;
 
     process(input: string): string | void {
+        const response = this.processRaw(input);
+
+        if (!response) {
+            return;
+        }
+
+        return response.replace(/\$\w+/gm, (name) => {
+            switch (name) {
+                case "$lastQuestion": {
+                    const {question} = this.state;
+
+                    if (question) {
+                        return question.text;
+                    }
+                }
+            }
+
+            return "";
+        });
+    }
+
+    processRaw(input: string): string | void {
         if (this.child) {
             if (this.child.state.done) {
                 this.child = undefined;
@@ -96,6 +125,10 @@ export class Context {
 
             if (!question) {
                 return;
+            }
+
+            if (hasSameRootWay) {
+                return arrayRandom(sameWayMessages);
             }
 
             const unknownList = question.unknown.length ? question.unknown : unknownMessages;
