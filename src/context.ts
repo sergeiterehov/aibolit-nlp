@@ -249,14 +249,25 @@ export class Context {
         const response: string[] = [];
 
         while (
-            this.state.question
-            && !this.cases.some(
-                (item) => this.state.question && item.question === this.state.question.name
-            )
+            true
         ) {
+            const question = this.state.question;
+
+            if (!question) {
+                break;
+            }
+
             // Ask the next question
-            response.push(this.state.question.text);
-            
+            response.push(question.text);
+
+            const hasCases = this.cases.some(
+                (item) => item.question === question.name
+            );
+
+            if (hasCases) {
+                break;
+            }
+
             // Just redirect
             this.state.question = this.questions.find((item) => item.name === question.next);
         }
