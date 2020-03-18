@@ -55,6 +55,7 @@ export class Context {
         cases: [],
     };
 
+    parent?: Context;
     child?: Context;
 
     process(input: string): string | void {
@@ -96,8 +97,20 @@ export class Context {
             return myResponse;
         }
 
-        if (!this.state.cases.length) {
+        const { question } = this.state;
+
+        if (!question) {
             return;
+        }
+
+        const unknownList = question.unknown.length ? question.unknown : unknownMessages;
+
+        if (!this.state.cases.length) {
+            if (this.parent) {
+                return;
+            }
+
+            return arrayRandom(unknownList);
         }
 
         if (this.state.done) {
@@ -107,12 +120,9 @@ export class Context {
             return;
         }
 
-        if (!this.state.question) {
-            return;
-        }
-
         const child = new Context();
 
+        child.parent = this;
         child.questions = this.questions;
         child.results = this.results;
         child.cases = this.cases;
@@ -127,7 +137,11 @@ export class Context {
         }
 
         if (child.state.isBreak) {
-            this.state.done = true;
+            if (this.child || prevChild) {
+                this.child = undefined;
+            } else {
+                this.state.done = true;
+            }
 
             return arrayRandom(breakMessages);
         }
@@ -139,7 +153,7 @@ export class Context {
                 return prevChild.compileResults();
             } else {
                 // This about current thread
-                return this.state.question.text;
+                return question.text;
             }
         }
 
@@ -151,14 +165,6 @@ export class Context {
         }
         
         if (!childResponse) {
-            const { question } = this.state;
-
-            if (!question) {
-                return;
-            }
-
-            const unknownList = question.unknown.length ? question.unknown : unknownMessages;
-
             // Save prev anyway
             this.child = prevChild;
 
