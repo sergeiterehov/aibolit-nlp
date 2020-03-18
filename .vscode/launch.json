@@ -1,0 +1,19 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Debug CLI",
+			"type": "node",
+			"request": "launch",
+			"args": ["${workspaceRoot}/src/cli.ts"],
+			"runtimeArgs": ["-r", "ts-node/register"],
+			"cwd": "${workspaceRoot}",
+			"protocol": "inspector",
+			"internalConsoleOptions": "openOnSessionStart",
+			"console": "integratedTerminal",
+			"env": {
+				"TS_NODE_IGNORE": "false"
+			}
+		}
+	]
+}

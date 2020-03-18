@@ -14,7 +14,7 @@ const unknownMessages = [
 
 const breakMessages = [
     "Ладно",
-    "Вернемся к предыдущей теме...",
+    "Вернемся к предыдущей теме...\n$lastQuestion",
     "Ок",
 ];
 
@@ -27,7 +27,7 @@ const killMessages = [
 
 const sameWayMessages = [
     "Мы об этом и говорим\n\n$lastQuestion",
-    "да. продолжим",
+    "да. продолжим\n$lastQuestion",
     "Я помню. об этом и речь",
     "Да-да!\n$lastQuestion"
 ];
@@ -41,6 +41,7 @@ export interface IState {
 
     isBreak?: boolean;
     isKill?: boolean;
+    isPrecessPrevChild?: boolean;
 
     question?: IQuestion;
     cases: ICase[];
@@ -79,6 +80,8 @@ export class Context {
     }
 
     processRaw(input: string): string | void {
+        const prevChild = this.child;
+
         if (this.child) {
             if (this.child.state.done) {
                 this.child = undefined;
@@ -93,7 +96,18 @@ export class Context {
             return myResponse;
         }
 
+        if (!this.state.cases.length) {
+            return;
+        }
+
         if (this.state.done) {
+            this.state.cases = [];
+            this.state.question = undefined;
+
+            return;
+        }
+
+        if (!this.state.question) {
             return;
         }
 
@@ -118,20 +132,35 @@ export class Context {
             return arrayRandom(breakMessages);
         }
 
-        const hasSameRootWay = child.state.cases.find((item) => item.question === "0") === this.state.cases.find((item) => item.question === "0");
+        if (child.state.isPrecessPrevChild) {
+            if (prevChild) {
+                this.child = prevChild;
 
-        if (!childResponse || hasSameRootWay) {
+                return prevChild.compileResults();
+            } else {
+                // This about current thread
+                return this.state.question.text;
+            }
+        }
+
+        const myRootCase = this.state.cases.find((item) => item.question === "0");
+        const hasSameRootWay = myRootCase && child.state.cases.includes(myRootCase);
+
+        if (hasSameRootWay) {
+            return arrayRandom(sameWayMessages);
+        }
+        
+        if (!childResponse) {
             const { question } = this.state;
 
             if (!question) {
                 return;
             }
 
-            if (hasSameRootWay) {
-                return arrayRandom(sameWayMessages);
-            }
-
             const unknownList = question.unknown.length ? question.unknown : unknownMessages;
+
+            // Save prev anyway
+            this.child = prevChild;
 
             return arrayRandom(unknownList);
         }
@@ -193,6 +222,12 @@ export class Context {
                     }
                     case "kill": {
                         this.state.isKill = true;
+                        this.state.done = true;
+
+                        return;
+                    }
+                    case "processPrevChild": {
+                        this.state.isPrecessPrevChild = true;
                         this.state.done = true;
 
                         return;
