@@ -239,7 +239,7 @@ export class Context {
             if (question.userInput) {
                 // Save to variable
 
-                this.state.variables[question.userInput] = input;
+                this.state.variables[question.userInput] = activeCase.sourceName;
             }
 
             this.state.cases.push(activeCase);

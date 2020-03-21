@@ -137,6 +137,7 @@ export function parseFile(inputFile) {
         return {
             question,
             name: id(name),
+            sourceName: name,
             positive,
             next: id(next),
             action,

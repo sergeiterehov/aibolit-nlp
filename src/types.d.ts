@@ -9,6 +9,7 @@ export interface IQuestion {
 
 export interface ICase {
     name: string;
+    sourceName: string;
     question: string;
     next?: string;
     positive: string[];
