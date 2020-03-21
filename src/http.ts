@@ -59,6 +59,8 @@ app.post("/process", withErrorHandler(async (req, res) => {
     if (!userContexts.get(key)) {
         userContexts.set(key, {
             cases: [],
+            variables: {},
+            actionsQueue: [],
         });
     }
 
@@ -68,6 +70,11 @@ app.post("/process", withErrorHandler(async (req, res) => {
 
     if (!userContext) {
         throw new Error("context not found");
+    }
+
+    userContext.variables = {
+        ...userContext.variables,
+        ...(req.body.variables ? req.body.variables : undefined)
     }
     
     context.state = userContext;
@@ -89,7 +96,9 @@ app.post("/process", withErrorHandler(async (req, res) => {
     }
 
     res.send({
-        output: systemOutput
+        output: systemOutput,
+        actions: context.state.actionsQueue.splice(0),
+        variables: context.state.variables,
     })
 }));
 

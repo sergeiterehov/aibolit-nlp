@@ -1,6 +1,6 @@
 import { createParser } from "./expressor";
 
-export const parseBoolean = createParser(({
+export const createBooleanParser = (id: (name: string) => string) => createParser(({
     find,
     str,
     reg,
@@ -10,7 +10,8 @@ export const parseBoolean = createParser(({
     }
     
     function V() {
-        return find("V", [reg(/\d+\.\w+/)], (p) => ({t:"var", name:p[0]}));
+        return find("V", [reg(/\d+/), str("."), reg(/\w+/)], (p) => ({t:"var", name:`${id(p[0])}.${id(p[2])}`}))
+            || find("V", [reg(/\$[\w\d\._]+/)], (p) => ({t:"var", name:p[0]}));
     }
     
     function N() {

@@ -9,20 +9,6 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-
-const cliContext: {
-    question?: string;
-    cases: string[];
-} = {
-    question: undefined,
-    cases: [],
-};
-
-context.state = {
-    question: context.questions.find((item) => item.name === cliContext.question),
-    cases: context.cases.filter((item) => cliContext.cases.includes(`${item.question}.${item.name}`)),
-};
-
 (async function () {
     while (!context.state.done) {
         const userInput: string = await new Promise((done) => rl.question('> ', done));
@@ -33,5 +19,9 @@ context.state = {
         }
 
         console.log(systemOutput || "{EMPTY_RESPONSE}");
+
+        if (context.state.actionsQueue.length) {
+            console.log("[ACTIONS]", context.state.actionsQueue.splice(0).join(", "));
+        }
     }
 })().finally(() => process.exit());

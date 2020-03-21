@@ -3,6 +3,8 @@ export interface IQuestion {
     next?: string;
     text: string;
     unknown: string[];
+    actions: string[];
+    userInput?: string;
 }
 
 export interface ICase {
@@ -11,6 +13,7 @@ export interface ICase {
     next?: string;
     positive: string[];
     action?: string;
+    expression?: object;
 }
 
 export interface IResult {

@@ -42,6 +42,8 @@ export interface IState {
 
     question?: IQuestion;
     cases: ICase[];
+    actionsQueue: string[];
+    variables: Record<string, string>;
 }
 
 export class Context {
@@ -50,10 +52,22 @@ export class Context {
     cases: ICase[] = [];
     state: IState = {
         cases: [],
+        variables: {},
+        actionsQueue: [],
     };
 
     parent?: Context;
     child?: Context;
+
+    get rootQuestion() {
+        const question = this.questions.find((item) => item.text === "main");
+
+        if (!question) {
+            throw new Error("Root question not found");
+        }
+
+        return question;
+    }
 
     process(input: string): string | void {
         const response = this.processRaw(input);
@@ -62,7 +76,7 @@ export class Context {
             return;
         }
 
-        return response.replace(/\$\w+/gm, (name) => {
+        return response.replace(/\$([a-zA-Z_]+)/gm, (string, name) => {
             switch (name) {
                 case "$lastQuestion": {
                     const {question} = this.state;
@@ -71,6 +85,12 @@ export class Context {
                         return question.text;
                     }
                 }
+            }
+
+            const varValue = this.state.variables[name];
+
+            if (varValue !== undefined) {
+                return varValue;
             }
 
             return "";
@@ -112,6 +132,7 @@ export class Context {
 
         if (this.state.done) {
             this.state.cases = [];
+            this.state.variables = {};
             this.state.question = undefined;
 
             return;
@@ -154,7 +175,7 @@ export class Context {
             }
         }
 
-        const myRootCase = this.state.cases.find((item) => item.question === "0");
+        const myRootCase = this.state.cases.find((item) => item.question === this.rootQuestion.name);
         const hasSameRootWay = myRootCase && child.state.cases.includes(myRootCase);
 
         if (hasSameRootWay) {
@@ -181,13 +202,13 @@ export class Context {
 
         if (!this.state.question && !this.state.cases.length) {
             // Init dialog
-            const initQuestion = this.questions[0];
+            const initQuestion = this.rootQuestion;
 
             if (!initQuestion) {
                 return;
             }
 
-            this.state.question = initQuestion;
+            this.redirect(initQuestion);
         }
 
         // Active dialog
@@ -200,47 +221,65 @@ export class Context {
             return;
         }
 
-        const currentQuestionCase = cases.find((item) => item.question === question.name);
+        const exprTest = testExpression(this.state.cases, this.state.variables);
 
-        if (!currentQuestionCase) {
-            // Current question has not answer, now answer is processing
-            const currentCases = this.cases.filter((item) => item.question === question.name);
+        const currentCases = this.cases
+            .filter((item) => item.question === question.name)
+            .filter((item) => !item.expression || exprTest(item.expression));
 
-            if (currentCases.length) {
-                const activeCase = this.predictCase(question, currentCases, input);
+            // Current question has not answered, now answer is processing
 
-                if (!activeCase) {
-                    // Unknown anser
+        if (currentCases.length) {
+            const activeCase = this.predictCase(question, currentCases, input);
+
+            if (!activeCase) {
+                return;
+            }
+
+            if (question.userInput) {
+                // Save to variable
+
+                this.state.variables[question.userInput] = input;
+            }
+
+            this.state.cases.push(activeCase);
+
+            switch (activeCase.action) {
+                case "break": {
+                    this.state.isBreak = true;
+                    this.state.done = true;
+
                     return;
                 }
+                case "kill": {
+                    this.state.isKill = true;
+                    this.state.done = true;
 
-                this.state.cases.push(activeCase);
-
-                switch (activeCase.action) {
-                    case "break": {
-                        this.state.isBreak = true;
-                        this.state.done = true;
-
-                        return;
-                    }
-                    case "kill": {
-                        this.state.isKill = true;
-                        this.state.done = true;
-
-                        return;
-                    }
-                    case "processPrevChild": {
-                        this.state.isPrecessPrevChild = true;
-                        this.state.done = true;
-
-                        return;
-                    }
+                    return;
                 }
+                case "processPrevChild": {
+                    this.state.isPrecessPrevChild = true;
+                    this.state.done = true;
 
-                // Go to the next question
-
-                this.state.question = this.questions.find((item) => item.name === (activeCase.next || question.next));
+                    return;
+                }
             }
+
+            // Go to the next question
+
+            this.redirect(this.questions.find((item) => (
+                item.name === (activeCase.next || question.next)
+            )));
+        } else if (question.userInput) {
+            // User input
+            
+            this.state.variables[question.userInput] = input;
+
+            // Go to the next question
+
+            this.redirect(this.questions.find((item) => (
+                item.name === question.next
+            )));
         }
 
         const response: string[] = [];
@@ -257,7 +296,7 @@ export class Context {
             // Ask the next question
             response.push(question.text);
 
-            const hasCases = this.cases.some(
+            const hasCases = question.userInput || this.cases.some(
                 (item) => item.question === question.name
             );
 
@@ -266,7 +305,7 @@ export class Context {
             }
 
             // Just redirect
-            this.state.question = this.questions.find((item) => item.name === question.next);
+            this.redirect(this.questions.find((item) => item.name === question.next));
         }
 
         if (!response.length && this.state.question) {
@@ -304,9 +343,21 @@ export class Context {
         return cases.find((item) => item.positive.includes(result));
     }
 
+    protected redirect(question?: IQuestion) {
+        if (this.state.question && this.state.question.actions.length) {
+            this.processActions(this.state.question.actions);
+        }
+
+        this.state.question = question;
+    }
+
+    protected processActions(actions: string[]) {
+        this.state.actionsQueue.push(...actions);
+    }
+
     protected compileResults(): string | void {
         const results = this.results.filter((result) => (
-            testExpression(result.expression, this.state.cases)
+            testExpression(this.state.cases, this.state.variables)(result.expression)
         ));
 
         if (!results.length) {
@@ -319,31 +370,34 @@ export class Context {
     }
 }
 
-function testExpression(expression: any, cases: ICase[]) {
-    const {t} = expression;
+function testExpression(cases: ICase[], variables: Record<string, string>) {
+    return function test(expression: any) {
+        const {t} = expression;
 
-    switch (t) {
-        case "var": {
-            const {name} = expression;
+        switch (t) {
+            case "var": {
+                const {name} = expression;
 
-            return Boolean(cases.find((item) => (
-                `${item.question}.${item.name}` === name
-            )));
+                return Boolean(variables[name])
+                    || Boolean(cases.find((item) => (
+                        `${item.question}.${item.name}` === name
+                    )));
+            }
+            case "not": {
+                const {a} = expression;
+
+                return !test(a);
+            }
+            case "and": {
+                const {a,b} = expression;
+
+                return test(a) && test(b);
+            }
+            case "or": {
+                const {a,b} = expression;
+
+                return test(a) || test(b);
+            }
         }
-        case "not": {
-            const {a} = expression;
-
-            return !testExpression(a, cases);
-        }
-        case "and": {
-            const {a,b} = expression;
-
-            return testExpression(a, cases) && testExpression(b, cases);
-        }
-        case "or": {
-            const {a,b} = expression;
-
-            return testExpression(a, cases) || testExpression(b, cases);
-        }
-    }
+    };
 }
