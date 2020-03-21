@@ -11,7 +11,7 @@ export const createBooleanParser = (id: (name: string) => string) => createParse
     
     function V() {
         return find("V", [reg(/\d+/), str("."), reg(/\w+/)], (p) => ({t:"var", name:`${id(p[0])}.${id(p[2])}`}))
-            || find("V", [reg(/\$[\w\d\._]+/)], (p) => ({t:"var", name:p[0]}));
+            || find("V", [str("$"), reg(/[\w\d\._]+/)], (p) => ({t:"var", name:p[1]}));
     }
     
     function N() {
