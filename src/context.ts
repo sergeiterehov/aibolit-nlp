@@ -1,5 +1,5 @@
 import { IQuestion, IResult, ICase } from "./types";
-import { predictText } from "./mind";
+import { predictText, arrayRandom } from "./mind";
 
 const unknownMessages = [
     "Простите, но я вас не понял.",
@@ -29,16 +29,12 @@ const sameWayMessages = [
     "Да-да!\n$lastQuestion"
 ];
 
-function arrayRandom<T>(array: T[]) {
-    return array[Math.round(Math.random() * (array.length - 1))];
-}
-
 export interface IState {
     done?: boolean;
 
     isBreak?: boolean;
     isKill?: boolean;
-    isPrecessPrevChild?: boolean;
+    isProcessPrevChild?: boolean;
 
     question?: IQuestion;
     cases: ICase[];
@@ -69,8 +65,12 @@ export class Context {
         return question;
     }
 
-    process(input: string): string | void {
-        const response = this.processRaw(input);
+    public process(input: string): string | void {
+        this.state.question = this.rootQuestion;
+
+        const response = this.thread(input);
+
+        this.state.done = false;
 
         if (!response) {
             return;
@@ -97,21 +97,31 @@ export class Context {
         });
     }
 
-    processRaw(input: string): string | void {
+    protected thread(input: string): string | void {
         const prevChild = this.child;
 
         if (this.child) {
             if (this.child.state.done) {
                 this.child = undefined;
             } else {
-                return this.child.process(input);
+                return this.child.thread(input);
             }
         }
 
-        const myResponse = this.fiber(input);
+        const myResponse = this.parent ? this.single(input) : undefined;
+
+        if (this.someRootWay()) {
+            this.state.done = true;
+
+            return arrayRandom(sameWayMessages);
+        }
 
         if (myResponse) {
             return myResponse;
+        }
+
+        if (this.state.done) {
+            return;
         }
 
         const { question } = this.state;
@@ -120,21 +130,7 @@ export class Context {
             return;
         }
 
-        const unknownList = question.unknown.length ? question.unknown : unknownMessages;
-
-        if (!this.state.cases.length) {
-            if (this.parent) {
-                return;
-            }
-
-            return arrayRandom(unknownList);
-        }
-
-        if (this.state.done) {
-            this.state.cases = [];
-            this.state.variables = {};
-            this.state.question = undefined;
-
+        if (this.parent && this.state.question === this.rootQuestion) {
             return;
         }
 
@@ -145,7 +141,7 @@ export class Context {
         child.results = this.results;
         child.cases = this.cases;
 
-        const childResponse = this.state.cases.length ? child.process(input) : undefined;
+        const childResponse = child.thread(input);
 
         if (child.state.isKill) {
             this.state.isKill = true;
@@ -164,27 +160,22 @@ export class Context {
             return arrayRandom(breakMessages);
         }
 
-        if (child.state.isPrecessPrevChild) {
+        if (child.state.isProcessPrevChild) {
             if (prevChild) {
                 this.child = prevChild;
 
                 return prevChild.compileResults();
-            } else {
+            } else if (this.parent) {
                 // This about current thread
                 return question.text;
             }
-        }
-
-        const myRootCase = this.state.cases.find((item) => item.question === this.rootQuestion.name);
-        const hasSameRootWay = myRootCase && child.state.cases.includes(myRootCase);
-
-        if (hasSameRootWay) {
-            return arrayRandom(sameWayMessages);
         }
         
         if (!childResponse) {
             // Save prev anyway
             this.child = prevChild;
+
+            const unknownList = question.unknown.length ? question.unknown : unknownMessages;
 
             return arrayRandom(unknownList);
         }
@@ -194,7 +185,7 @@ export class Context {
         return childResponse;
     }
 
-    protected fiber(input: string): string | void {
+    protected single(input: string): string | void {
         if (this.state.done) {
             // Dialog has been complete
             return;
@@ -258,7 +249,7 @@ export class Context {
                     return;
                 }
                 case "processPrevChild": {
-                    this.state.isPrecessPrevChild = true;
+                    this.state.isProcessPrevChild = true;
                     this.state.done = true;
 
                     return;
@@ -367,6 +358,20 @@ export class Context {
         return results.map((item) => arrayRandom(item.texts))
             .filter((value, index, self) => self.indexOf(value) === index)
             .join("\n");
+    }
+
+    protected someRootWay(rootCase?: ICase) {
+        if (!this.parent) {
+            return;
+        }
+
+        if (!rootCase) {
+            const myRootCase = this.state.cases.find((item) => item.question === this.rootQuestion.name);
+
+            return this.parent.someRootWay(myRootCase);
+        }
+
+        return this.state.cases.includes(rootCase) || this.parent.someRootWay(rootCase);
     }
 }
 

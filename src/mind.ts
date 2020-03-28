@@ -2,6 +2,10 @@ export const synonyms = {
     list: {},
 };
 
+export function arrayRandom<T>(array: T[]) {
+    return array[Math.round(Math.random() * (array.length - 1))];
+}
+
 function cmp(a: string, b: string) {
     if (!a.length && !b.length) return 1;
     if (!a.length || !b.length) return 0;
@@ -53,44 +57,80 @@ const text2 = (a: string) => {
     };
 }
 
-export function predictText(list: string[], input: string) {
-    const ratings = list.map((text) => {
+(() => {
+    distance2("расскажи как мне короновируса против защититься")("как защититься от короновируса");
+    process.exit();
+});
+
+function distance2(input: string) {
+    return function (text: string) {
         const target = text.split(" ").map(text1).filter(Boolean);
         const value = input.split(" ").map(text1).filter(Boolean);
 
-        // Если слишком много слов, то скорей всего понять смысл не получится
-        if (value.length / target.length > 5) {
-            return +Infinity;
-        }
-
         const ordList = target.map((text) => value.findIndex(text2(text)));
-        // 1, -1, 4, 2, 7
-        const ordListClear = ordList.filter((val) => val !== -1);
-        // 1, 4, 2, 7
-        const notFoundNumber = ordList.length - ordListClear.length;
-        // notFound = 1
-        const ordListDiff = ordListClear.reduce((list: number[], val, i, all) => [
-            ...list,
-            (val - (all[i - 1] || 0)) * (notFoundNumber + 1),
-        ], []);
-        // 1, 3, -2, 5
 
-        if (!ordListDiff.length) {
-            return +Infinity;
+        const ordListClear = ordList.filter((val) => val !== -1);
+
+        const foundNumber = ordListClear.length;
+
+        if (!foundNumber) {
+            return Infinity;
         }
 
-        const min = ordListDiff.reduce((acc, val) => Math.min(acc, val), +Infinity);
-        const max = ordListDiff.reduce((acc, val) => Math.max(acc, val), -Infinity);
-        const range = max - min;
+        const wordsNumber = ordList.length;
+        const notFoundNumber = wordsNumber - foundNumber;
 
-        const rating = (range === 0 ? max : range) / (ordListDiff.length + 1);
+        // Если слишком много промахов, то ошибку не стоит даже считать.
+        if (notFoundNumber / wordsNumber > 0.5) {
+            return Infinity;
+        }
 
-        return rating;
-    });
+        const inputNumber = value.length;
+        const noiseNumber = Math.max(inputNumber - foundNumber, 0);
 
-    const bestRating = ratings.reduce((acc, val) => Math.min(acc, val), +Infinity);
+        // Слишком много лишних слов.
+        if (noiseNumber / inputNumber > 0.7) {
+            return Infinity;
+        }
 
-    const bestIndex = Number.isFinite(bestRating) ? ratings.indexOf(bestRating) : -1;
+        const shiftedList = ordListClear.map((val, i, list) => {
+            // Отрицательные значения (обратный порядок), станут еще меньше!
+            return i === 0 ? val : (val - list[i - 1]) - 1;
+        });
 
-    return list[bestIndex];
+        const accOffsetsError = Math.sqrt(shiftedList.reduce((acc, offset) => {
+            // Если порядок правильный, и отставание не сильное, то можно пропустить.
+            if (offset > 0 && offset < 3) {
+                return acc;
+            }
+
+            // Если слово сильно отстает, то нужно это учесть.
+            return acc + Math.pow(Math.abs(offset), 2);
+        }, 0)) / foundNumber;
+
+        const fullError = Math.pow(notFoundNumber, 2) + accOffsetsError;
+
+        return fullError;
+    };
+}
+
+export function predictText(list: string[], input: string) {
+    const errors = list.map(distance2(input));
+
+    if (process.env.DEBUG) {
+        console.log("[ERRORS]", Object.fromEntries(list.map((item, i) => [item, errors[i]]).filter(([,e]) => e < Infinity)));
+    }
+
+    const minError = errors.reduce((acc, val) => Math.min(acc, val), +Infinity);
+
+    if (!Number.isFinite(minError)) {
+        return;
+    }
+
+    const bestIndexes = errors.reduce((list: number[], e, i) => {
+        // Принимаем варианты с незначительным отклонением от ошибки
+        return Math.abs(e - minError) <= 0.1 * minError ? [...list, i] : list;
+    }, []);
+
+    return list[arrayRandom(bestIndexes)];
 }
