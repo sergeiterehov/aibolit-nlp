@@ -161,10 +161,12 @@ export class Context {
         }
 
         if (child.state.isProcessPrevChild) {
-            if (prevChild) {
+            const prevResponse = prevChild && (prevChild.compileResults() || prevChild.state.question && prevChild.state.question.text);
+
+            if (prevResponse) {
                 this.child = prevChild;
 
-                return prevChild.compileResults();
+                return prevResponse;
             } else if (this.parent) {
                 // This about current thread
                 return question.text;
