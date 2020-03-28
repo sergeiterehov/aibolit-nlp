@@ -10,7 +10,7 @@ const unknownMessages = [
 
 const breakMessages = [
     "Ладно.",
-    "Вернемся к предыдущей теме.\n$lastQuestion",
+    "Вернемся к предыдущей теме.",
     "Ок.",
 ];
 
@@ -23,10 +23,10 @@ const killMessages = [
 ];
 
 const sameWayMessages = [
-    "Мы об этом и говорим.\n\n$lastQuestion",
-    "Да. Давайте продолжим.\n$lastQuestion",
+    "Мы об этом и говорим.",
+    "Да. Давайте продолжим.",
     "Я помню. Об этом и речь.",
-    "Да-да!\n$lastQuestion"
+    "Да-да!"
 ];
 
 export interface IState {
@@ -70,23 +70,15 @@ export class Context {
 
         const response = this.thread(input);
 
-        this.state.done = false;
+        if (!this.state.isKill) {
+            this.state.done = false;
+        }
 
         if (!response) {
             return;
         }
 
         return response.replace(/\$([a-zA-Z_]+)/gm, (string, name) => {
-            switch (name) {
-                case "$lastQuestion": {
-                    const {question} = this.state;
-
-                    if (question) {
-                        return question.text;
-                    }
-                }
-            }
-
             const varValue = this.state.variables[name];
 
             if (varValue !== undefined) {
@@ -98,7 +90,7 @@ export class Context {
     }
 
     protected thread(input: string): string | void {
-        const prevChild = this.child;
+        const prevChild = this.child && !this.child.state.isBreak ? this.child : undefined;
 
         if (this.child) {
             if (this.child.state.done) {
@@ -109,12 +101,6 @@ export class Context {
         }
 
         const myResponse = this.parent ? this.single(input) : undefined;
-
-        if (this.someRootWay()) {
-            this.state.done = true;
-
-            return arrayRandom(sameWayMessages);
-        }
 
         if (myResponse) {
             return myResponse;
@@ -140,27 +126,43 @@ export class Context {
         child.questions = this.questions;
         child.results = this.results;
         child.cases = this.cases;
+        child.state.variables = this.state.variables;
 
         const childResponse = child.thread(input);
 
+        if (child.someRootWay()) {
+            return [
+                arrayRandom(sameWayMessages),
+                question.text,
+            ].join("\n");
+        }
+
         if (child.state.isKill) {
-            this.state.isKill = true;
-            this.state.done = true;
+            this.kill();
 
             return arrayRandom(killMessages);
         }
 
         if (child.state.isBreak) {
-            if (this.child || prevChild) {
-                this.child = undefined;
-            } else {
-                this.state.done = true;
+            this.state.done = true;
+            this.state.isBreak = true;
+
+            if (!this.parent || !this.parent.state.question) {
+                return;
             }
 
-            return arrayRandom(breakMessages);
+            if (!this.parent.parent) {
+                return;
+            }
+
+            return [
+                arrayRandom(breakMessages),
+                this.parent.state.question.text,
+            ].join("\n\n");
         }
 
         if (child.state.isProcessPrevChild) {
+            // Пытаемся получить последний ответ ребенка.
             const prevResponse = prevChild && (prevChild.compileResults() || prevChild.state.question && prevChild.state.question.text);
 
             if (prevResponse) {
@@ -374,6 +376,15 @@ export class Context {
         }
 
         return this.state.cases.includes(rootCase) || this.parent.someRootWay(rootCase);
+    }
+
+    protected kill() {
+        this.state.isKill = true;
+        this.state.done = true;
+
+        if (this.parent) {
+            this.parent.kill();
+        }
     }
 }
 
