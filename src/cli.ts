@@ -1,8 +1,14 @@
 import readline from "readline";
 import util from "util";
+import { argv } from "./argv";
 import { createContext } from "./provider";
+import { readFileSync } from "fs";
 
 const context = createContext();
+
+if (typeof argv.vars === "string") {
+    context.state.variables = {...JSON.parse(readFileSync(argv.vars, "utf8"))};
+}
 
 const rl = readline.createInterface({
   input: process.stdin,
