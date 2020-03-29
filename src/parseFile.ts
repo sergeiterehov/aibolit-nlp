@@ -76,7 +76,7 @@ export function parseFile(inputFile) {
     const parseQuestion = parser<IQuestion>(() => {
         const line = content[cur++];
 
-        const testMain = /^(?<name>\d+)\.(\s*\$(?<userInput>[a-zA-Z_]+)\s*=)?\s*(?<questionText>.+)/gms;
+        const testMain = /^(?<name>\d+)\.(\s*\$(?<userInput>[a-zA-Z_0-9]+)\s*=)?\s*(?<questionText>.+)/gms;
         
         const main = testMain.exec(line);
 
@@ -162,7 +162,7 @@ export function parseFile(inputFile) {
     });
 
     const parseUserInput = parser<string>(() => {
-        const testLine = /^\s+\*\s+\$(?<varName>[a-zA-Z_]+)/gms;
+        const testLine = /^\s+\*\s+\$(?<varName>[a-zA-Z_0-9]+)/gms;
         
         const line = content[cur++];
 
@@ -178,7 +178,7 @@ export function parseFile(inputFile) {
     });
 
     const parseAction = parser<string>(() => {
-        const testLine = /^\s+::\s+(?<actionName>[a-zA-Z_]+)/gms;
+        const testLine = /^\s+::\s+(?<actionName>[a-zA-Z_0-9]+)/gms;
         
         const line = content[cur++];
 

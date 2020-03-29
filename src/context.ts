@@ -78,7 +78,7 @@ export class Context {
             return;
         }
 
-        return response.replace(/\$([a-zA-Z_]+)/gm, (string, name) => {
+        return response.replace(/\$([a-zA-Z_0-9]+)/gm, (string, name) => {
             const varValue = this.state.variables[name];
 
             if (varValue !== undefined) {
