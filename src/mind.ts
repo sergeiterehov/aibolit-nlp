@@ -43,7 +43,8 @@ function text1(text: string) {
     return text
         .trim()
         .toLowerCase()
-        .replace(/^[\w\d]/gm, "");
+        .replace(/^[\w\d]/gm, "")
+        .replace("ё", "е");
 }
 
 const text2 = (a: string) => {
@@ -56,11 +57,6 @@ const text2 = (a: string) => {
         return list.some((aItem) => cmp(aItem, b));
     };
 }
-
-(() => {
-    distance2("расскажи как мне короновируса против защититься")("как защититься от короновируса");
-    process.exit();
-});
 
 function distance2(input: string) {
     return function (text: string) {
