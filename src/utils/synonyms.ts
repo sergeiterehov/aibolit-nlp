@@ -3,16 +3,11 @@ import { readFileSync, writeFileSync } from "fs";
 
 const db: Record<string, string[]> = JSON.parse(readFileSync("synonyms.json", "utf-8"));
 
+console.log("Synonyms loaded:", Object.keys(db).length);
+
 function saveFile() {
     writeFileSync("synonyms.json", JSON.stringify(db), "utf-8");
 }
-
-console.log("Synonyms loaded:", Object.keys(db).length);
-
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
 
 function add<T>(a: T[], item: T) {
     const index = a.indexOf(item);
@@ -41,11 +36,13 @@ function addSynonym(word: string, synonym: string, buf: string[] = []) {
 
     const synonyms = db[word] || (db[word] = []);
 
-    add(synonyms, synonym);
+    if (word !== synonym) {
+        add(synonyms, synonym);
+    }
 
     buf.push(word);
 
-    synonyms.forEach((other) => addSynonym(other, synonym, buf));
+    synonyms.forEach((other) => addSynonym(other, word, buf));
 }
 
 function removeSynonym(word: string, synonym: string, buf: string[] = []) {
@@ -63,6 +60,16 @@ function removeSynonym(word: string, synonym: string, buf: string[] = []) {
 }
   
 (async function () {
+    console.log("+СЛОВО - для добавления к предыдущему.");
+    console.log("-СЛОВО - для удаления у предыдущего.");
+    console.log("save - сохранить файл.");
+    console.log("");
+
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
     let last: string = "";
 
     while (true) {
