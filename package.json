@@ -5,11 +5,13 @@
   "main": "index.js",
   "scripts": {
     "test": "npm run build:script && npm run cli",
+    "synonyms": "node ./dist/synonyms",
     "build": "npm run build:utils && npm run build:http && npm run build:script",
-    "build:utils": "npm run build:util:parser && npm run build:util:cli",
+    "build:utils": "npm run build:util:parser && npm run build:util:cli && npm run build:util:synonyms",
     "build:http": "ncc build src/http.ts -m -o dist/http",
     "build:util:parser": "ncc build src/parser.ts -m -o dist/parser",
     "build:util:cli": "ncc build src/cli.ts -m -o dist/cli",
+    "build:util:synonyms": "ncc build src/utils/synonyms.ts -m -o dist/synonyms",
     "build:script": "node dist/parser/index.js --in=config.txt --out=config.json",
     "cli": "node dist/cli/index.js --synonyms --vars=test-variables.json",
     "start": "node dist/http/index.js --synonyms --port=3501"

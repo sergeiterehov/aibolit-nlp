@@ -60,7 +60,7 @@ app.post("/process", withErrorHandler(async (req, res) => {
         userContexts.set(key, {
             cases: [],
             variables: {},
-            actionsQueue: [],
+            callQueue: [],
         });
     }
 
@@ -97,7 +97,7 @@ app.post("/process", withErrorHandler(async (req, res) => {
 
     res.send({
         output: systemOutput,
-        actions: context.state.actionsQueue.splice(0),
+        actions: context.state.callQueue.splice(0),
         variables: context.state.variables,
     })
 }));

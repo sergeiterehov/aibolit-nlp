@@ -1,6 +1,7 @@
 import fs from "fs";
-import { IQuestion, ICase, IResult } from "./types";
+import { IQuestion, ICase, IResult, IAction } from "./types";
 import { createBooleanParser } from "./parseBoolean";
+import { ActionType } from "./ActionType";
 
 let globalUid = 0;
 
@@ -13,7 +14,8 @@ export function parseFile(inputFile) {
         .replace(/\r\n/gm, "\n")
         .replace(/\s*\\\\s*\n/gm, "<br>")
         .split("\n")
-        .map((line) => line.replace(/<br>/gm, "\n"));
+        .map((line) => line.replace(/<br>/gm, "\n"))
+        .filter((line) => line.trim().indexOf("///") !== 0);
 
     let cur = 0;
 
@@ -177,8 +179,12 @@ export function parseFile(inputFile) {
         return varName;
     });
 
-    const parseAction = parser<string>(() => {
-        const testLine = /^\s+::\s+(?<actionName>[a-zA-Z_0-9]+)/gms;
+    const parseAction = parser<IAction>(() => {
+        return parseCall() || parseVarSet();
+    });
+
+    const parseCall = parser<IAction>(() => {
+        const testLine = /^\s+((?<on>\-\>|\<\-)\s+)?call\s+(?<actionName>[a-zA-Z_0-9]+)/gms;
         
         const line = content[cur++];
 
@@ -188,9 +194,33 @@ export function parseFile(inputFile) {
             return;
         }
 
-        const { actionName } = res.groups;
+        const { actionName, on } = res.groups;
 
-        return actionName;
+        return {
+            on: on === "->" ? "in" : "out",
+            type: ActionType.CallCommand,
+            args: [actionName],
+        };
+    });
+
+    const parseVarSet = parser<IAction>(() => {
+        const testLine = /^\s+((?<on>\-\>|\<\-)\s+)?set\s+(?<variable>[a-zA-Z_0-9]+)\s+(?<value>.*)/gms;
+        
+        const line = content[cur++];
+
+        const res = testLine.exec(line);
+
+        if (!res || !res.groups) {
+            return;
+        }
+
+        const { variable, value, on } = res.groups;
+
+        return {
+            on: on === "->" ? "in" : "out",
+            type: ActionType.SetVariable,
+            args: [variable, value],
+        };
     });
 
     const parseQuestionBlock = parser<{

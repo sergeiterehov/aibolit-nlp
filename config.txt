@@ -3,6 +3,7 @@
 @include scenarios/coronavirus.txt
 @include scenarios/tiredness.txt
 @include scenarios/immunity.txt
+@include scenarios/subscribe/covid19.txt
 
 0. main
     e. Пока | завтра | заткнись :: kill

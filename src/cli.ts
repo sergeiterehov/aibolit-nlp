@@ -26,8 +26,8 @@ const rl = readline.createInterface({
 
         console.log(systemOutput || "{EMPTY_RESPONSE}");
 
-        if (context.state.actionsQueue.length) {
-            console.log("[ACTIONS]", context.state.actionsQueue.splice(0).join(", "));
+        if (context.state.callQueue.length) {
+            console.log("[CALLS]", context.state.callQueue.splice(0).join(", "));
         }
     }
 })().finally(() => process.exit());

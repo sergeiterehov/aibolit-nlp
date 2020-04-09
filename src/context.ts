@@ -1,5 +1,6 @@
-import { IQuestion, IResult, ICase } from "./types";
+import { IQuestion, IResult, ICase, IAction } from "./types";
 import { predictText, arrayRandom } from "./mind";
+import { ActionType } from "./ActionType";
 
 const unknownMessages = [
     "Простите, но я вас не понял.",
@@ -38,7 +39,7 @@ export interface IState {
 
     question?: IQuestion;
     cases: ICase[];
-    actionsQueue: string[];
+    callQueue: string[];
     variables: Record<string, string>;
 }
 
@@ -49,7 +50,7 @@ export class Context {
     state: IState = {
         cases: [],
         variables: {},
-        actionsQueue: [],
+        callQueue: [],
     };
 
     parent?: Context;
@@ -127,6 +128,7 @@ export class Context {
         child.results = this.results;
         child.cases = this.cases;
         child.state.variables = this.state.variables;
+        child.state.callQueue = this.state.callQueue;
 
         const childResponse = child.thread(input);
 
@@ -339,15 +341,33 @@ export class Context {
     }
 
     protected redirect(question?: IQuestion) {
-        if (this.state.question && this.state.question.actions.length) {
-            this.processActions(this.state.question.actions);
-        }
+        this.processCurrentQuestionActions("out");
 
         this.state.question = question;
+
+        this.processCurrentQuestionActions("in");
     }
 
-    protected processActions(actions: string[]) {
-        this.state.actionsQueue.push(...actions);
+    protected processCurrentQuestionActions(on: "in" | "out") {
+        if (!this.state.question || !this.state.question.actions.length) {
+            return;
+        }
+
+        this.processActions(this.state.question.actions.filter((action) => action.on = on));
+    }
+
+    protected processActions(actions: IAction[]) {
+        const commands = actions
+            .filter((action) => action.type === ActionType.CallCommand)
+            .map(({ args }) => args[0]);
+
+        this.state.callQueue.push(...commands);
+
+        actions
+            .filter((action) => action.type === ActionType.SetVariable)
+            .forEach(({ args: [name, value] }) => {
+                this.state.variables[name] = value;
+            });
     }
 
     protected compileResults(): string | void {
