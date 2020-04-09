@@ -6,10 +6,10 @@
 
 1. Подписка на информацию по коронавирусу добавлена.
     -> set userSubscribeCovid19 1
-    -> call saveUserProfile
+    -> call saveUserIndicators
     back. отменить | не нужно | случайно -> 2
 
 2. Подписка на информацию по коронавирусу отменена.
     -> set userSubscribeCovid19 0
-    -> call saveUserProfile
+    -> call saveUserIndicators
     back. отменить | не нужно | случайно -> 1
