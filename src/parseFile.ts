@@ -204,7 +204,7 @@ export function parseFile(inputFile) {
     });
 
     const parseVarSet = parser<IAction>(() => {
-        const testLine = /^\s+((?<on>\-\>|\<\-)\s+)?set\s+(?<variable>[a-zA-Z_0-9]+)\s+(?<value>.*)/gms;
+        const testLine = /^\s+((?<on>\-\>|\<\-)\s+)?set\s+(?<variable>[a-zA-Z_0-9]+)(\s+(?<value>.+))?/gms;
         
         const line = content[cur++];
 
@@ -219,7 +219,7 @@ export function parseFile(inputFile) {
         return {
             on: on === "->" ? "in" : "out",
             type: ActionType.SetVariable,
-            args: [variable, value],
+            args: [variable, value || ""],
         };
     });
 
