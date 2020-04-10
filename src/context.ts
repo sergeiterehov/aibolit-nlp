@@ -353,7 +353,7 @@ export class Context {
             return;
         }
 
-        this.processActions(this.state.question.actions.filter((action) => action.on = on));
+        this.processActions(this.state.question.actions.filter((action) => action.on === on));
     }
 
     protected processActions(actions: IAction[]) {
