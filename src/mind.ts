@@ -113,7 +113,7 @@ function distance2(input: string) {
 
         const notContextError = checkDiffNotContext(target, value) ? 2 : 1;
 
-        const fullError = (Math.pow(notFoundNumber, 2) + accOffsetsError) * notContextError;
+        const fullError = (Math.pow(notFoundNumber, 2) + accOffsetsError) / wordsNumber * notContextError;
 
         return fullError;
     };
