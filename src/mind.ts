@@ -58,6 +58,13 @@ const text2 = (a: string) => {
     };
 }
 
+function checkDiffNotContext(a: string[], b: string[]) {
+    const aNot = a.includes("не") || a.includes("нет");
+    const bNot = b.includes("не") || b.includes("нет");
+
+    return aNot && !bNot || !aNot && bNot;
+}
+
 function distance2(input: string) {
     return function (text: string) {
         const target = text.split(" ").map(text1).filter(Boolean);
@@ -104,7 +111,9 @@ function distance2(input: string) {
             return acc + Math.pow(Math.abs(offset), 2);
         }, 0)) / foundNumber;
 
-        const fullError = Math.pow(notFoundNumber, 2) + accOffsetsError;
+        const notContextError = checkDiffNotContext(target, value) ? 2 : 1;
+
+        const fullError = (Math.pow(notFoundNumber, 2) + accOffsetsError) * notContextError;
 
         return fullError;
     };
